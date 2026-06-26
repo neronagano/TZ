@@ -2,7 +2,7 @@ from datetime import datetime
 from http import HTTPMethod
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 ALLOWED_METHODS = {
     HTTPMethod.GET.value,
@@ -35,6 +35,8 @@ class LogEntryListQuery(BaseModel):
     offset: int = Field(default=0, ge=0)
     method: str | None = None
     status_code: int | None = Field(default=None, ge=100, le=599)
+    cursor_created_at: datetime | None = None
+    cursor_id: UUID | None = None
 
     @field_validator("method")
     @classmethod
@@ -47,6 +49,19 @@ class LogEntryListQuery(BaseModel):
             raise ValueError("Invalid HTTP method")
 
         return normalized_method
+
+    @model_validator(mode="after")
+    def validate_cursor(self) -> "LogEntryListQuery":
+        has_cursor_created_at = self.cursor_created_at is not None
+        has_cursor_id = self.cursor_id is not None
+
+        if has_cursor_created_at != has_cursor_id:
+            raise ValueError("Cursor parameters must be provided together")
+
+        if has_cursor_created_at and self.offset != 0:
+            raise ValueError("Offset must be 0 when cursor is used")
+
+        return self
 
 
 class LogEntryResponse(BaseModel):

@@ -1,6 +1,8 @@
 import logging
+from datetime import datetime
 from json import loads
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import ValidationError
@@ -25,6 +27,8 @@ def get_log_entries_query(
     offset: Annotated[int, Query(ge=0)] = 0,
     method: Annotated[str | None, Query()] = None,
     status_code: Annotated[int | None, Query(ge=100, le=599)] = None,
+    cursor_created_at: Annotated[datetime | None, Query()] = None,
+    cursor_id: Annotated[UUID | None, Query()] = None,
 ) -> LogEntryListQuery:
     try:
         return LogEntryListQuery(
@@ -32,6 +36,8 @@ def get_log_entries_query(
             offset=offset,
             method=method,
             status_code=status_code,
+            cursor_created_at=cursor_created_at,
+            cursor_id=cursor_id,
         )
     except ValidationError as exc:
         raise HTTPException(
@@ -75,6 +81,8 @@ async def get_log_entries(
             "total": total,
             "method": query.method,
             "status_code": query.status_code,
+            "cursor_created_at": query.cursor_created_at.isoformat() if query.cursor_created_at else None,
+            "cursor_id": str(query.cursor_id) if query.cursor_id else None,
         },
     )
 

@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from server.database.models.log_entry import LogEntry
@@ -30,6 +30,17 @@ async def get_log_entries(
     if query.status_code is not None:
         filters.append(LogEntry.status_code == query.status_code)
 
+    if query.cursor_created_at is not None and query.cursor_id is not None:
+        filters.append(
+            or_(
+                LogEntry.created_at > query.cursor_created_at,
+                and_(
+                    LogEntry.created_at == query.cursor_created_at,
+                    LogEntry.id > query.cursor_id,
+                ),
+            )
+        )
+
     total_stmt = select(func.count()).select_from(LogEntry)
     items_stmt = select(LogEntry)
 
@@ -37,12 +48,12 @@ async def get_log_entries(
         total_stmt = total_stmt.where(*filters)
         items_stmt = items_stmt.where(*filters)
 
-    items_stmt = (
-        items_stmt
-        .order_by(LogEntry.created_at.desc())
-        .offset(query.offset)
-        .limit(query.limit)
-    )
+    if query.cursor_created_at is not None and query.cursor_id is not None:
+        items_stmt = items_stmt.order_by(LogEntry.created_at.asc(), LogEntry.id.asc())
+    else:
+        items_stmt = items_stmt.order_by(LogEntry.created_at.desc(), LogEntry.id.desc())
+
+    items_stmt = items_stmt.offset(query.offset).limit(query.limit)
 
     total_result = await session.execute(total_stmt)
     items_result = await session.execute(items_stmt)
