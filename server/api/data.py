@@ -66,11 +66,36 @@ def _validate_status_code(status_code: str) -> int:
 
     return value
 
-@router.get("/")
-async def main(log: str):
-    ip_address, method, endpoint, status_code = log.split()
+
+def parse_log(log: str) -> dict[str, str | int]:
+    if not log or not log.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Log line is empty",
+        )
+
+    parts = log.split()
+    if len(parts) != 4:
+        raise HTTPException(
+            status_code=400,
+            detail="Log line must contain exactly 4 parts",
+        )
+
+    ip_address, method, endpoint, status_code = parts
     ip_address = _validate_ip_address(ip_address)
     method = _validate_method(method)
     endpoint = _validate_endpoint(endpoint)
     status_code = _validate_status_code(status_code)
-    return 200
+
+    return {
+        "ip": ip_address,
+        "method": method,
+        "uri": endpoint,
+        "status_code": status_code,
+    }
+
+
+@router.get("/")
+async def data_endpoint(log: str):
+    parsed_log = parse_log(log)
+    return {"log": parsed_log}
