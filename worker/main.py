@@ -1,7 +1,7 @@
 import logging
-import os
 
 from core.logging import configure_logging
+from core.settings import settings
 from worker.services.worker import WorkerService
 
 
@@ -11,10 +11,10 @@ def main() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     worker = WorkerService(
-        api_url=os.getenv("WORKER_API_URL", "http://localhost:8000"),
-        poll_interval_seconds=int(os.getenv("WORKER_POLL_INTERVAL_SECONDS", "5")),
-        page_size=int(os.getenv("WORKER_PAGE_SIZE", "100")),
-        output_file=os.getenv("WORKER_OUTPUT_FILE", "worker/data/log_entries.jsonl"),
+        api_url=settings.WORKER_API_URL,
+        poll_interval_seconds=settings.WORKER_POLL_INTERVAL_SECONDS,
+        page_size=settings.WORKER_PAGE_SIZE,
+        output_file=settings.WORKER_OUTPUT_FILE,
     )
     worker.run()
 

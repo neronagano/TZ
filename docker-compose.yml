@@ -57,6 +57,25 @@ services:
       - client_logs:/app/client/logs
     restart: "no"
 
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-console}
+      WORKER_API_URL: ${WORKER_API_URL:-http://server:8000}
+      WORKER_POLL_INTERVAL_SECONDS: ${WORKER_POLL_INTERVAL_SECONDS:-5}
+      WORKER_PAGE_SIZE: ${WORKER_PAGE_SIZE:-100}
+      WORKER_OUTPUT_FILE: ${WORKER_OUTPUT_FILE_DOCKER:-/app/worker/data/log_entries.jsonl}
+    volumes:
+      - worker_data:/app/worker/data
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   client_logs:
+  worker_data:

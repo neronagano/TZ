@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     CLIENT_MAX_ATTEMPTS: int = Field(default=3, ge=1)
     CLIENT_RETRY_BACKOFF_MS: int = Field(default=200, ge=0)
 
+    WORKER_API_URL: str = "http://localhost:8000"
+    WORKER_POLL_INTERVAL_SECONDS: int = Field(default=5, ge=1)
+    WORKER_PAGE_SIZE: int = Field(default=100, ge=1, le=1000)
+    WORKER_OUTPUT_FILE: str = "worker/data/log_entries.jsonl"
+
 
 @lru_cache
 def get_settings() -> "Settings":

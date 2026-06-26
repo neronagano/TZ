@@ -8,4 +8,5 @@ __pycache__
 *.pyd
 *.log
 client/logs
+worker/data
 README.md
