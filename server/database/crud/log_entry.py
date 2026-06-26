@@ -1,8 +1,8 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models.log_entry import LogEntry
-from models.log_entry import LogEntryListQuery
+from server.database.models.log_entry import LogEntry
+from server.models.log_entry import LogEntryListQuery
 
 
 async def create_log_entry(

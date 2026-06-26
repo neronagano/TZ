@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from fastapi import HTTPException
 
-from models.log_entry import LogCreateRequest
+from server.models.log_entry import LogCreateRequest
 
 ALLOWED_METHODS = {
     HTTPMethod.GET.value,
@@ -16,6 +16,7 @@ ALLOWED_METHODS = {
 }
 
 logger = logging.getLogger(__name__)
+
 
 class LogParser:
     def parse(self, log: str) -> dict[str, str | int]:

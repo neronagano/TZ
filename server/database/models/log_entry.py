@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database.models.base import Base
+from server.database.models.base import Base
 
 
 class LogEntry(Base):

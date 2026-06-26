@@ -20,11 +20,7 @@ PY
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY alembic.ini ./
-COPY alembic ./alembic
 COPY core ./core
-COPY server ./server
+COPY client ./client
 
-EXPOSE 8000
-
-CMD ["sh", "-c", "alembic upgrade head && python -m server.main"]
+CMD ["python", "-m", "client.main"]
