@@ -28,8 +28,13 @@ def _validate_method(method):
             detail="Method value error"
         )
 
-def _validate_endpoint(endpoint):
-    ...
+def _validate_endpoint(endpoint: str) -> None:
+    parsed = urlparse(endpoint)
+    if not endpoint.startswith("/") or parsed.scheme or parsed.netloc:
+        raise HTTPException(
+            status_code=400,
+            detail="Endpoint value error",
+        )
 
 @router.get("/")
 async def main(log: str):
