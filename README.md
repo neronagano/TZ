@@ -1,22 +1,25 @@
 # Проект
 
-Проект состоит из трёх сервисов:
+Проект состоит из четырёх сервисов:
 - `server` принимает лог-строки через FastAPI, валидирует их, сохраняет в PostgreSQL и отдаёт через API.
 - `client` генерирует лог-строки и отправляет их в `server`.
+- `worker` периодически читает данные из `server` через `GET /api/data` и сохраняет их в общий файл.
 - `db` хранит записи `LogEntry`.
 
 ## Архитектура
 
-Структура сделана простой и прямой:
-- [server](/D:/Workplace/TZMvideo/server) — HTTP API, бизнес-логика и работа с БД.
-- [client](/D:/Workplace/TZMvideo/client) — генерация и отправка логов.
-- [core](/D:/Workplace/TZMvideo/core) — общие настройки и логгирование.
-
-Связи между сервисами такие:
+Связи между сервисами простые:
 - `client -> server`
+- `worker -> server`
 - `server -> db`
 
 С базой данных работает только `server`.
+
+Структура проекта:
+- [server](D:/Workplace/TZMvideo/server) — API, валидация, логика работы с БД.
+- [client](D:/Workplace/TZMvideo/client) — генерация и отправка логов.
+- [worker](D:/Workplace/TZMvideo/worker) — периодический фоновый сбор данных из API.
+- [core](D:/Workplace/TZMvideo/core) — общие настройки и логгирование.
 
 ## Запуск
 
@@ -29,11 +32,12 @@ docker compose up --build
 
 После старта:
 - API доступно на `http://localhost:8000`
-- client отправит заданное число логов и завершится
+- `client` отправляет логи в `server`
+- `worker` периодически запрашивает `server` и пишет результат в файл внутри Docker volume
 
 ## Переменные окружения
 
-Основные:
+Общие:
 - `LOG_LEVEL` — уровень логирования.
 - `LOG_FORMAT` — формат логов: `console` или `json`.
 
@@ -51,15 +55,22 @@ PostgreSQL:
 - `POSTGRES_PORT_DOCKER`
 
 Client:
-- `CLIENT_API_URL` — адрес `server` для клиента внутри Docker.
-- `CLIENT_WORKERS` — количество потоков.
-- `CLIENT_MAX_DELAY_MS` — максимальная случайная задержка между запросами.
-- `CLIENT_REQUESTS_PER_WORKER` — сколько запросов отправляет каждый поток.
-- `CLIENT_LOG_FILE` — путь к лог-файлу при локальном запуске.
-- `CLIENT_LOG_FILE_DOCKER` — путь к лог-файлу в контейнере.
+- `CLIENT_API_URL`
+- `CLIENT_WORKERS`
+- `CLIENT_MAX_DELAY_MS`
+- `CLIENT_REQUESTS_PER_WORKER`
+- `CLIENT_LOG_FILE`
+- `CLIENT_LOG_FILE_DOCKER`
 - `CLIENT_REQUEST_TIMEOUT_SECONDS`
 - `CLIENT_MAX_ATTEMPTS`
 - `CLIENT_RETRY_BACKOFF_MS`
+
+Worker:
+- `WORKER_API_URL`
+- `WORKER_POLL_INTERVAL_SECONDS`
+- `WORKER_PAGE_SIZE`
+- `WORKER_OUTPUT_FILE`
+- `WORKER_OUTPUT_FILE_DOCKER`
 
 ## API
 
@@ -95,16 +106,27 @@ Client:
 - `offset`
 - `method`
 - `status_code`
+- `cursor_created_at`
+- `cursor_id`
 
-Пример:
+Пример обычного запроса:
 
 ```bash
-curl "http://localhost:8000/api/data?limit=10&offset=0&method=GET&status_code=200"
+curl "http://localhost:8000/api/data?limit=10&offset=0"
 ```
 
-## Принятые решения
+Пример cursor-запроса для `worker`:
 
-- Основная модель называется `LogEntry`.
-- Валидация лог-строки сделана на стороне `server`, чтобы все входные данные проходили через одну точку.
-- `client` не знает ничего о БД и работает только через HTTP.
-- Docker Compose поднимает только `db`, `server` и `client`, без дополнительных сервисов.
+```bash
+curl "http://localhost:8000/api/data?limit=10&offset=0&cursor_created_at=2025-01-01T12:00:00Z&cursor_id=00000000-0000-0000-0000-000000000000"
+```
+
+## Принятые решения и допущения
+
+- Основная модель данных называется `LogEntry`.
+- Валидация лог-строки выполняется только в `server`.
+- `client` и `worker` не работают с БД напрямую, только через HTTP API `server`.
+- `worker` пишет записи в общий `JSONL`-файл: одна строка — один JSON-объект.
+- Чтобы несколько экземпляров `worker` не писали в файл одновременно, используется file lock.
+- Чтобы `worker` не записывал дубликаты, он берёт `created_at` и `id` из последней строки файла и продолжает чтение через cursor.
+- При первом запуске `worker` сохраняет только первую страницу текущих записей, а дальше читает только новые.
