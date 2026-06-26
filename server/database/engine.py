@@ -19,3 +19,13 @@ SessionLocal = async_sessionmaker(
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with SessionLocal() as session:
         yield session
+
+
+async def init_database() -> None:
+    from database.models.base import Base
+    from database.models.log_entry import LogEntry
+
+    del LogEntry
+
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)

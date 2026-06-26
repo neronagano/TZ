@@ -29,16 +29,16 @@ class LogParser:
                 detail="Log line must contain exactly 4 parts",
             )
 
-        ip_address, method, endpoint, status_code = parts
+        ip_address, method, uri, status_code = parts
         ip_address = self._validate_ip_address(ip_address)
         method = self._validate_method(method)
-        endpoint = self._validate_endpoint(endpoint)
+        uri = self._validate_uri(uri)
         status_code = self._validate_status_code(status_code)
 
         return {
             "ip": ip_address,
             "method": method,
-            "uri": endpoint,
+            "uri": uri,
             "status_code": status_code,
         }
 
@@ -63,15 +63,15 @@ class LogParser:
 
         return normalized_method
 
-    def _validate_endpoint(self, endpoint: str) -> str:
-        parsed = urlparse(endpoint)
-        if not endpoint.startswith("/") or parsed.scheme or parsed.netloc:
+    def _validate_uri(self, uri: str) -> str:
+        parsed = urlparse(uri)
+        if not uri.startswith("/") or parsed.scheme or parsed.netloc:
             raise HTTPException(
                 status_code=400,
-                detail="Endpoint value error",
+                detail="URI value error",
             )
 
-        return endpoint
+        return uri
 
     def _validate_status_code(self, status_code: str) -> int:
         try:

@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 import uvicorn
 
 from api import router
+from database.engine import init_database
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await init_database()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(router)
 
