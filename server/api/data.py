@@ -1,10 +1,16 @@
 import ipaddress
 from http import HTTPMethod
 from urllib.parse import urlparse
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/data", tags=["Data"])
+
+
+class LogCreateRequest(BaseModel):
+    log: str
 
 ALLOWED_METHODS = {
     HTTPMethod.GET.value,
@@ -95,7 +101,12 @@ def parse_log(log: str) -> dict[str, str | int]:
     }
 
 
-@router.get("/")
-async def data_endpoint(log: str):
-    parsed_log = parse_log(log)
+def get_parsed_log(payload: LogCreateRequest) -> dict[str, str | int]:
+    return parse_log(payload.log)
+
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def data_endpoint(
+    parsed_log: Annotated[dict[str, str | int], Depends(get_parsed_log)],
+):
     return {"log": parsed_log}
