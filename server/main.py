@@ -5,6 +5,7 @@ import uvicorn
 
 from api import router
 from core.logging import configure_logging
+from core.settings import settings
 
 configure_logging()
 
@@ -16,4 +17,9 @@ app.include_router(router)
 
 if __name__ == "__main__":
     logger.info("starting uvicorn server")
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(
+        "main:app",
+        host=settings.API_HOST,
+        port=settings.API_PORT,
+        reload=settings.API_RELOAD,
+    )

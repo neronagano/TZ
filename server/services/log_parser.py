@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from fastapi import HTTPException
 
-from models.log import LogCreateRequest
+from models.log_entry import LogCreateRequest
 
 ALLOWED_METHODS = {
     HTTPMethod.GET.value,

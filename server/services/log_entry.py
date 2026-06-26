@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.crud.log_entry import create_log_entry as create_log_entry_crud
 from database.crud.log_entry import get_log_entries as get_log_entries_crud
 from database.models.log_entry import LogEntry
-from models.log import LogEntryListQuery
+from models.log_entry import LogEntryListQuery
 
 logger = logging.getLogger(__name__)
 

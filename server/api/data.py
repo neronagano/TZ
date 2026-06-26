@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.engine import get_session
-from models.log import LogEntryCreateResponse, LogEntryListQuery, LogEntryListResponse
+from models.log_entry import LogEntryCreateResponse, LogEntryListQuery, LogEntryListResponse
 from services.log_entry import create_log_entry as create_log_entry_service
 from services.log_entry import get_log_entries as get_log_entries_service
 from services.log_parser import get_parsed_log

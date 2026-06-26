@@ -13,6 +13,9 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "console"
+    API_HOST: str = "127.0.0.1"
+    API_PORT: int = 8000
+    API_RELOAD: bool = False
 
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/server"
 
