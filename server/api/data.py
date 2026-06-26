@@ -56,7 +56,7 @@ async def create_log_entry(
     }
 
 
-@router.get("/", response_model=LogEntryListResponse)
+@router.get("", response_model=LogEntryListResponse)
 async def get_log_entries(
     query: Annotated[LogEntryListQuery, Depends(get_log_entries_query)],
     session: Annotated[AsyncSession, Depends(get_session)],
