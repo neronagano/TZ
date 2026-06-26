@@ -36,6 +36,7 @@ class LogParser:
 
         ip_address, method, uri, status_code = parts
         ip_address = self._validate_ip_address(ip_address)
+        self._is_ip_v4(ip_address)
         method = self._validate_method(method)
         uri = self._validate_uri(uri)
         status_code = self._validate_status_code(status_code)
@@ -62,6 +63,13 @@ class LogParser:
             )
 
         return ip_address
+
+    def _is_ip_v4(self, ip_address: str) -> bool:
+        if not isinstance(ipaddress.ip_address(ip_address), ipaddress.IPv4Address):
+            raise HTTPException(
+                status_code=400,
+                detail="Only IPv4 is supported",
+            )
 
     def _validate_method(self, method: str) -> str:
         normalized_method = method.upper()

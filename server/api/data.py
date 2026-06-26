@@ -36,7 +36,7 @@ def get_log_entries_query(
         )
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=LogEntryCreateResponse)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=LogEntryCreateResponse)
 async def create_log_entry(
     parsed_log: Annotated[dict[str, str | int], Depends(get_parsed_log)],
     session: Annotated[AsyncSession, Depends(get_session)],
