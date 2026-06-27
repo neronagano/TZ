@@ -75,3 +75,8 @@ class LogEntryListResponse(BaseModel):
     limit: int
     offset: int
     total: int
+
+
+class LogEntryStatsResponse(BaseModel):
+    methods: dict[str, int]
+    status_codes: dict[str, int]

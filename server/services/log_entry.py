@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from server.database.crud.log_entry import create_log_entry as create_log_entry_crud
 from server.database.crud.log_entry import get_log_entries as get_log_entries_crud
+from server.database.crud.log_entry import get_log_entry_stats as get_log_entry_stats_crud
 from server.database.models.log_entry import LogEntry
 from server.models.log_entry import LogEntryListQuery
 
@@ -35,6 +36,19 @@ async def get_log_entries(
         return await get_log_entries_crud(session, query)
     except SQLAlchemyError:
         logger.exception("failed to fetch log entries")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error",
+        )
+
+
+async def get_log_entry_stats(
+    session: AsyncSession,
+) -> tuple[dict[str, int], dict[str, int]]:
+    try:
+        return await get_log_entry_stats_crud(session)
+    except SQLAlchemyError:
+        logger.exception("failed to fetch log entry stats")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",

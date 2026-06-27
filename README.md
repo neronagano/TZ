@@ -3,12 +3,12 @@
 Проект состоит из четырёх сервисов:
 - `server` принимает лог-строки через FastAPI, валидирует их, сохраняет в PostgreSQL и отдаёт через API.
 - `client` генерирует лог-строки и отправляет их в `server`.
-- `worker` периодически читает данные из `server` через `GET /api/data` и сохраняет их в общий файл.
+- `worker` периодически читает данные из `server` и пишет их в общий JSONL-файл.
 - `db` хранит записи `LogEntry`.
 
 ## Архитектура
 
-Связи между сервисами простые:
+Связи между сервисами:
 - `client -> server`
 - `worker -> server`
 - `server -> db`
@@ -16,46 +16,51 @@
 С базой данных работает только `server`.
 
 Структура проекта:
-- [server](D:/Workplace/TZMvideo/server) — API, валидация, логика работы с БД.
-- [client](D:/Workplace/TZMvideo/client) — генерация и отправка логов.
-- [worker](D:/Workplace/TZMvideo/worker) — периодический фоновый сбор данных из API.
-- [core](D:/Workplace/TZMvideo/core) — общие настройки и логгирование.
+- [server](./server) — API, валидация, работа с БД.
+- [client](./client) — генерация и отправка логов.
+- [worker](./worker) — фоновая выгрузка данных из API в файл.
+- [core](./core) — общие настройки и логгирование.
+- [.env.example](./.env.example) — пример единого файла конфигурации.
 
 ## Запуск
 
-1. Создать `.env` на основе `.env.example`.
-2. Запустить проект:
-
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
 После старта:
 - API доступно на `http://localhost:8000`
 - `client` отправляет логи в `server`
-- `worker` периодически запрашивает `server` и пишет результат в файл внутри Docker volume
+- `worker` сохраняет записи в Docker volume
+
+Файл `worker` можно посмотреть так:
+
+```bash
+docker compose exec worker sh -c "tail -n 20 /app/worker/data/log_entries.jsonl"
+```
 
 ## Переменные окружения
 
 Общие:
-- `LOG_LEVEL` — уровень логирования.
-- `LOG_FORMAT` — формат логов: `console` или `json`.
+- `LOG_LEVEL`
+- `LOG_FORMAT`
+
+PostgreSQL:
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
 
 Server:
 - `API_HOST`
 - `API_PORT`
 - `API_RELOAD`
 - `DATABASE_URL`
-
-PostgreSQL:
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_HOST_DOCKER`
-- `POSTGRES_PORT_DOCKER`
+- `DATABASE_URL_DOCKER`
 
 Client:
-- `CLIENT_API_URL`
+- `API_URL`
+- `API_URL_DOCKER`
 - `CLIENT_WORKERS`
 - `CLIENT_MAX_DELAY_MS`
 - `CLIENT_REQUESTS_PER_WORKER`
@@ -67,6 +72,7 @@ Client:
 
 Worker:
 - `WORKER_API_URL`
+- `WORKER_API_URL_DOCKER`
 - `WORKER_POLL_INTERVAL_SECONDS`
 - `WORKER_PAGE_SIZE`
 - `WORKER_OUTPUT_FILE`
@@ -76,7 +82,7 @@ Worker:
 
 ### `POST /api/data`
 
-Принимает тело:
+Тело запроса:
 
 ```json
 {
@@ -84,7 +90,7 @@ Worker:
 }
 ```
 
-Возвращает `201 Created`:
+Ответ `201 Created`:
 
 ```json
 {
@@ -101,7 +107,7 @@ Worker:
 
 ### `GET /api/data`
 
-Поддерживает параметры:
+Параметры:
 - `limit`
 - `offset`
 - `method`
@@ -109,24 +115,37 @@ Worker:
 - `cursor_created_at`
 - `cursor_id`
 
-Пример обычного запроса:
+Примеры:
 
 ```bash
 curl "http://localhost:8000/api/data?limit=10&offset=0"
+curl "http://localhost:8000/api/data?limit=10&offset=0&method=GET&status_code=200"
+curl "http://localhost:8000/api/data?limit=10&cursor_created_at=2025-01-01T12:00:00Z&cursor_id=00000000-0000-0000-0000-000000000000"
 ```
 
-Пример cursor-запроса для `worker`:
+### `GET /api/stats`
 
-```bash
-curl "http://localhost:8000/api/data?limit=10&offset=0&cursor_created_at=2025-01-01T12:00:00Z&cursor_id=00000000-0000-0000-0000-000000000000"
+Возвращает агрегированную статистику по записям из БД:
+
+```json
+{
+  "methods": {
+    "GET": 120,
+    "POST": 95
+  },
+  "status_codes": {
+    "200": 210,
+    "404": 15
+  }
+}
 ```
 
-## Принятые решения и допущения
+## Принятые решения
 
 - Основная модель данных называется `LogEntry`.
 - Валидация лог-строки выполняется только в `server`.
-- `client` и `worker` не работают с БД напрямую, только через HTTP API `server`.
-- `worker` пишет записи в общий `JSONL`-файл: одна строка — один JSON-объект.
-- Чтобы несколько экземпляров `worker` не писали в файл одновременно, используется file lock.
-- Чтобы `worker` не записывал дубликаты, он берёт `created_at` и `id` из последней строки файла и продолжает чтение через cursor.
-- При первом запуске `worker` сохраняет только первую страницу текущих записей, а дальше читает только новые.
+- `client` и `worker` не работают с БД напрямую.
+- `worker` пишет записи в общий `JSONL`-файл.
+- Чтобы несколько `worker` не писали в файл одновременно, используется file lock.
+- Чтобы `worker` не писал дубликаты, он продолжает чтение через cursor по `created_at` и `id`.
+- При первом запуске `worker` сохраняет только первую страницу текущих записей, после этого продолжает чтение новых записей через cursor.

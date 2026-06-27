@@ -6,7 +6,10 @@ class ServerClient:
         self._client = httpx.Client(base_url=base_url.rstrip("/"), timeout=5.0)
         self._page_size = page_size
 
-    def close(self) -> None:
+    def __enter__(self) -> "ServerClient":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self._client.close()
 
     def fetch_initial_entries(self) -> list[dict]:

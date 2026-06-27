@@ -24,16 +24,14 @@ class WorkerService:
     def run(self) -> None:
         logger.info("worker service started")
 
-        try:
+        with self._server_client:
             while True:
                 self._run_cycle()
                 time.sleep(self._poll_interval_seconds)
-        finally:
-            self._server_client.close()
 
     def _run_cycle(self) -> None:
-        with self._file_store.try_lock() as is_locked:
-            if not is_locked:
+        with self._file_store.try_lock() as lock_acquired:
+            if not lock_acquired:
                 logger.info("worker skipped cycle because file is locked")
                 return
 

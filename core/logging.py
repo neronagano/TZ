@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from pythonjsonlogger.jsonlogger import JsonFormatter
+from pythonjsonlogger.json import JsonFormatter
 
 from core.settings import settings
 

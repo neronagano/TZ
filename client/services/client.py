@@ -42,14 +42,12 @@ class ClientService:
     def _run_worker(self, worker_id: int) -> None:
         randomizer = Random()
         generator = LogGenerator(randomizer=randomizer)
-        api_client = WebAPIClient(
+        with WebAPIClient(
             base_url=self._settings.API_URL,
             timeout_seconds=self._settings.CLIENT_REQUEST_TIMEOUT_SECONDS,
             max_attempts=self._settings.CLIENT_MAX_ATTEMPTS,
             retry_backoff_ms=self._settings.CLIENT_RETRY_BACKOFF_MS,
-        )
-
-        try:
+        ) as api_client:
             for request_index in range(self._settings.CLIENT_REQUESTS_PER_WORKER):
                 log_entry = generator.generate()
                 result = api_client.send_log(log_entry)
@@ -58,8 +56,6 @@ class ClientService:
                 if request_index < self._settings.CLIENT_REQUESTS_PER_WORKER - 1:
                     delay_ms = randomizer.randint(0, self._settings.CLIENT_MAX_DELAY_MS)
                     time.sleep(delay_ms / 1000)
-        finally:
-            api_client.close()
 
     def _log_delivery(
         self,

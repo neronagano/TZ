@@ -1,8 +1,15 @@
+from http import HTTPMethod
 from random import Random
 
 from client.models.log_entry import GeneratedLogEntry
 
-HTTP_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
+HTTP_METHODS = (
+    HTTPMethod.GET.value,
+    HTTPMethod.POST.value,
+    HTTPMethod.PUT.value,
+    HTTPMethod.PATCH.value,
+    HTTPMethod.DELETE.value,
+)
 URIS = (
     "/api/users",
     "/api/orders",

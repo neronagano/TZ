@@ -20,7 +20,10 @@ class WebAPIClient:
         self._max_attempts = max_attempts
         self._retry_backoff_ms = retry_backoff_ms
 
-    def close(self) -> None:
+    def __enter__(self) -> "WebAPIClient":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self._client.close()
 
     def send_log(self, log_entry: GeneratedLogEntry) -> DeliveryResult:

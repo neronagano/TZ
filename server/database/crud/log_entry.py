@@ -59,3 +59,32 @@ async def get_log_entries(
     items_result = await session.execute(items_stmt)
 
     return list(items_result.scalars().all()), total_result.scalar_one()
+
+
+async def get_log_entry_stats(
+    session: AsyncSession,
+) -> tuple[dict[str, int], dict[str, int]]:
+    methods_stmt = (
+        select(LogEntry.method, func.count())
+        .group_by(LogEntry.method)
+        .order_by(LogEntry.method.asc())
+    )
+    status_codes_stmt = (
+        select(LogEntry.status_code, func.count())
+        .group_by(LogEntry.status_code)
+        .order_by(LogEntry.status_code.asc())
+    )
+
+    methods_result = await session.execute(methods_stmt)
+    status_codes_result = await session.execute(status_codes_stmt)
+
+    methods = {
+        method: count
+        for method, count in methods_result.all()
+    }
+    status_codes = {
+        str(status_code): count
+        for status_code, count in status_codes_result.all()
+    }
+
+    return methods, status_codes
