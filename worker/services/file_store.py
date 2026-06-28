@@ -27,20 +27,41 @@ class FileStore:
             self._lock.release()
 
     def read_last_entry(self) -> dict | None:
-        if not self._path.exists():
+        if not self._path.exists() or self._path.stat().st_size == 0:
             return None
 
-        last_line: str | None = None
-
-        with self._path.open("r", encoding="utf-8") as file:
-            for line in file:
-                if line.strip():
-                    last_line = line
-
+        last_line = self._read_last_non_empty_line()
         if last_line is None:
             return None
 
         return json.loads(last_line)
+
+    def _read_last_non_empty_line(self) -> str | None:
+        with self._path.open("rb") as file:
+            file.seek(0, 2)
+            position = file.tell() - 1
+
+            while position >= 0:
+                file.seek(position)
+                current_byte = file.read(1)
+                if current_byte not in (b"\n", b"\r"):
+                    break
+                position -= 1
+
+            if position < 0:
+                return None
+
+            line_bytes = bytearray()
+
+            while position >= 0:
+                file.seek(position)
+                current_byte = file.read(1)
+                if current_byte == b"\n":
+                    break
+                line_bytes.extend(current_byte)
+                position -= 1
+
+        return bytes(reversed(line_bytes)).decode("utf-8")
 
     def append_entries(self, entries: list[dict]) -> int:
         if not entries:
